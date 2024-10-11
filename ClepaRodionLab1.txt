@@ -1,0 +1,109 @@
+package Notification;
+
+import User.User;
+
+//Dependency Inversion Principle
+
+public interface Notification {
+    void send(String message, User user);
+}
+
+
+----------------------------------------------------
+package Notification;
+
+import User.User;
+
+public class SmsNotification implements Notification{
+    public void send(String message, User user) {
+        System.out.println(user.getName() + " got SMS message on " + user.getPhone());
+        System.out.println("Content:");
+        System.out.println(message);
+    }
+}
+
+-------------------------------------------------------
+
+package Notification;
+
+import User.User;
+
+public class EmailNotification implements Notification{
+    public void send(String message, User user) {
+        System.out.println("A email notification was sent to " + user.getEmail());
+        System.out.println("Content:");
+        System.out.println(message);
+    }
+}
+
+---------------------------------------------------------
+
+
+package User;
+
+public class User {
+//    Single Responsibility Principle
+    private String name;
+    private String email;
+    private String phone;
+
+    public User(String name, String email) {
+        this.name = name;
+        this.email = email;
+    }
+
+    public User(String name, String email, String phone) {
+        this.name = name;
+        this.email = email;
+        this.phone = phone;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+}
+
+----------------------------------------------------------
+import Notification.Notification;
+import User.User;
+
+public class Library {
+//    Liskov Substitution Principle
+    private Notification notificationService;
+
+    public Library(Notification notificationService) {
+        this.notificationService = notificationService;
+    }
+
+    public void notifyUser(String message, User user) {
+        notificationService.send(message, user);
+    }
+}
+
+--------------------------------------------------------------------
+import Notification.Notification;
+import Notification.EmailNotification;
+import Notification.SmsNotification;
+import User.User;
+
+public class Main {
+    public static void main(String[] args) {
+//        Notification emailService = new EmailNotification();
+//        Library library = new Library(emailService);
+//        User user = new User("Rodion", "rodion@gmail.com");
+//        library.notifyUser("Return my books", user);
+
+        Notification smsService = new SmsNotification();
+        Library library = new Library(smsService);
+        User user = new User("Rodion", "rodion@gmail.com", "124177481");
+        library.notifyUser("Return my books or u will get spammed", user);
+    }
+}
