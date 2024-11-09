@@ -1,56 +1,118 @@
-# Report on Implementation of Creational Design Patterns
-### Clepa Rodion FAF 221
-
-## Overview
-This project demonstrates the implementation of three creational design patterns: Builder, Factory, and Singleton. The system revolves around a notification mechanism that can send different types of notifications (for now Email, SMS), and also logs the actions with a logging system.
-
-## Builder Design Pattern
-#### Fields
-- `String message` Holds the message content for the notification
-- `String recipient` Stores the recipient information for the notification.
-- `Notification notification` An instance of Notification (an abstract class) that will represent the specific type of notification, such as EmailNotification or SmsNotification
-
-#### Builder Methods
-
-- `message(String message)` Sets the message field to the provided value. This method returns the NotificationBuilder instance, enabling method chaining.
-- `recipient(String recipient)` Sets the recipient field to the provided value and also returns the NotificationBuilder instance.
-- `notificationType(Notification notification)` Sets the notification field with the specific Notification type passed as an argument. This could be an instance of any subclass of Notification, like EmailNotification or SmsNotification.
-
-#### `build()` Method
-
-- This method finalizes the configuration of the `Notification` object by setting the `message` and `recipient` on the specified `Notification` type. It calls the `setMessage` and `setRecipient` methods on notification to pass these values.
-- Finally, it returns the fully configured `Notification` instance.
+# Structural Design Patterns
 
 
-## Factory Method Design Pattern
-#### Static Factory Method:
+## Author: Clepa Rodion
+
+----
+
+## Objectives:
+
+* Get familiar with the Structural Design Patterns;
+* Reminding domain;
+* Implement at least 3 SDPs for the specific domain;
+
+## Reminding domain
+- Notification System
+
+## Used Design Patterns:
+- Adapter
+- Decorator
+- Proxy
+
+
+## Implementation
+### Adapter
+* Adapter is a design pattern that allows objects with incompatible interfaces to interact. I decided to make an JSON notification adapter which transform notifications to JSON format.
+
 ```java
-public static Notification createNotification(NotificationType type, String message, String recipient) {
-        LogSystem logger = LogSystem.getInstance();
-        Notification notification;
-        switch (type) {
-            case EMAIL:
-                notification = new EmailNotification(message, recipient);
-                logger.log("Created Email Notification");
-                break;
-            case SMS:
-                /** **/
-            default:
-                throw new IllegalArgumentException("Unknown notification type: " + type);
-        }
-        return notification;
+public class JsonNotificationAdapter extends Notification {
+    private final Notification notification;
+
+    public JsonNotificationAdapter(Notification notification) {
+        super(notification.getMessage(), notification.getRecipient());
+        this.notification = notification;
     }
+
+    @Override
+    public void send() {
+        String json = String.format("{\"message\":\"%s\", \"recipient\":\"%s\"}", message, recipient);
+        System.out.println("Sending JSON notification: " + json);
+    }
+}
 ```
-`createNotification(NotificationType type, String message, String recipient)` This static method is responsible for generating `Notification` objects. It takes in a `NotificationType` enum (either EMAIL or SMS), a `message`, and a `recipient`.
 
-## Singleton Design Pattern
-The `LogSystem` class implements the Singleton design pattern, ensuring there is only one instance of `LogSystem` throughout the application.
+Result
+```
+Sending JSON notification: {"message":"Your book is ready to pick up!", "recipient":"john@gmail.com"}
+```
 
-#### Private Static Instance
-`private static LogSystem instance` This holds the single instance of `LogSystem`. It is static, ensuring that the same instance can be accessed globally across the application.
-#### Private Constructor
-`private LogSystem() {}` The private constructor prevents direct instantiation of the `LogSystem` class from outside, enforcing the Singleton pattern by restricting instantiation.
+### Decorator
+* Decorator allows to add new behavior to object placing them inside other object that contains new behavior.
+* In my implementation, I am adding the functionality of email notifications by creating a GmailDecorator that applies Gmail-specific settings before sending the notification.
+* In the GmailDecorator class, I extend the EmailDecorator to create a decorator that prints a message indicating the use of Gmail settings before call to the original email notification send() method.
 
-#### `getInstance` Method:
-`public static LogSystem getInstance()` This method checks if an instance of `LogSystem` already exists. If not, it creates one. This instance is then returned, providing a single point of access to the logger.
+```java
+public class GmailDecorator extends EmailDecorator {
+    public GmailDecorator(EmailNotification emailNotification) {
+        super(emailNotification);
+    }
 
+    @Override
+    public void send() {
+        System.out.println("Using Gmail settings...");
+        super.send();
+    }
+}
+```
+
+* EmailDecorator hold a reference to an EmailNotification object. The constructor initializes the base class with the message and recipient, where the decorator send() method calls the send() method of the encapsulated notification.
+```java
+public abstract class EmailDecorator extends EmailNotification {
+    protected EmailNotification emailNotification;
+
+    public EmailDecorator(EmailNotification emailNotification) {
+        super(emailNotification.getMessage(), emailNotification.getRecipient());
+        this.emailNotification = emailNotification;
+    }
+
+    @Override
+    public void send() {
+        emailNotification.send();
+    }
+}
+```
+
+Result
+```
+Using Gmail settings...
+Email sent to john@gmail.com: An angry email for John Doe
+```
+
+### Proxy
+* For Proxy design pattern I created a NotificaitonProxy that wraps a Notification object. This proxy adds logging whenever a notification is sent. Proxy is used in factory class
+```java
+public class NotificationProxy extends Notification {
+    private Notification realNotification;
+
+    public NotificationProxy(Notification realNotification) {
+        super(realNotification.getMessage(), realNotification.getRecipient());
+        this.realNotification = realNotification;
+    }
+
+    @Override
+    public void send() {
+        // Addiing additional behavior
+        LogSystem logger = LogSystem.getInstance();
+        logger.log("Proxy is called");
+        logger.log("Preparing to send notification to " + recipient);
+
+        // Call the actual send method
+        realNotification.send();
+
+        logger.log("Notification sent to " + recipient);
+    }
+}
+```
+
+## Conclusions
+In this laboratory work I have utilized three patterns Adapter, Decorator and Proxy within a notifcation system. The use of each pattern has increased the flexibility of my code, also bold the importance of utilizing design patterns in software development.  

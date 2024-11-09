@@ -12,8 +12,17 @@ public abstract class Notification {
     public void setMessage(String message) {
         this.message = message;
     }
+
     public void setRecipient(String recipient) {
         this.recipient = recipient;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getRecipient() {
+        return recipient;
     }
 
     public abstract void send();
