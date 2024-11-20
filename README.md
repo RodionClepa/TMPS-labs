@@ -1,4 +1,4 @@
-# Structural Design Patterns
+# Behavioral Design Patterns
 
 
 ## Author: Clepa Rodion
@@ -7,112 +7,115 @@
 
 ## Objectives:
 
-* Get familiar with the Structural Design Patterns;
-* Reminding domain;
-* Implement at least 3 SDPs for the specific domain;
+* Study and understand the Behavioral Design Patterns.
+* As a continuation of the previous laboratory work, think about what communication between software entities might be involed in my system.
+* Implement some additional functionalities using behavioral design patterns.
 
 ## Reminding domain
 - Notification System
 
 ## Used Design Patterns:
-- Adapter
-- Decorator
-- Proxy
+- Chain of Responsibility
 
 
 ## Implementation
-### Adapter
-* Adapter is a design pattern that allows objects with incompatible interfaces to interact. I decided to make an JSON notification adapter which transform notifications to JSON format.
+### Chain of Responsibility
+* Chain of Responsibility is a design pattern that allow to pass a data through a chain of handler, each handler have possibility to process or to pass data to the next handler.
+
+For start, I create an interface for all other handlers
+```java
+public interface NotificationHandler {
+    void setNext(NotificationHandler handler);
+    Notification handleNotification(NotificationType type, String message, String recipient);
+}
+```
+Method `setNext` - is used to link one handler to another in a chain
+Method `handleNotification` - where will be implemented data processing.
+
+
+The EmailNotificationHandler is responsible for handling email notifications. When it receives a notification data, it does a few thing.
+- It checks if the notification is an email.
+- It creates a basic email notification.
+- It applies decorator to the notification based on the recipient's email domain.
+- It logs the creation of the email notification.
 
 ```java
-public class JsonNotificationAdapter extends Notification {
-    private final Notification notification;
+public class EmailNotificationHandler implements NotificationHandler {
+    private NotificationHandler next;
 
-    public JsonNotificationAdapter(Notification notification) {
-        super(notification.getMessage(), notification.getRecipient());
-        this.notification = notification;
+    @Override
+    public void setNext(NotificationHandler handler) {
+        this.next = handler;
     }
 
     @Override
-    public void send() {
-        String json = String.format("{\"message\":\"%s\", \"recipient\":\"%s\"}", message, recipient);
-        System.out.println("Sending JSON notification: " + json);
+    public Notification handleNotification(NotificationType type, String message, String recipient) {
+        if (type == NotificationType.EMAIL) {
+            LogSystem logger = LogSystem.getInstance();
+            EmailNotification notification = new EmailNotification(message, recipient);
+
+            if (recipient.endsWith("@gmail.com")) {
+                notification = new GmailDecorator(notification);
+            } else if (recipient.endsWith("@outlook.com")) {
+                notification = new OutlookDecorator(notification);
+            }
+
+            logger.log("Created Email Notification");
+            return notification;
+        }
+        return next != null ? next.handleNotification(type, message, recipient) : null;
     }
 }
 ```
+
+Other handler is just adding a message to the end of the message
+```java
+public class EmailRespectHandler implements NotificationHandler {
+    private NotificationHandler next;
+
+    @Override
+    public void setNext(NotificationHandler handler) {
+        this.next = handler;
+    }
+
+    @Override
+    public Notification handleNotification(NotificationType type, String message, String recipient) {
+        message += "\nWith Respect Your creditor";
+        return next != null ? next.handleNotification(type, message, recipient) : null;
+    }
+}
+```
+
+Below is how I implemented handlers in factory
+
+```
+NotificationHandler emailHandler = new EmailNotificationHandler();
+NotificationHandler emailRespectHandler = new EmailRespectHandler();
+
+emailRespectHandler.setNext(emailHandler);
+
+notification = emailRespectHandler.handleNotification(type, message, recipient);
+
+if (notification == null) {
+    throw new IllegalArgumentException("Unknown notification type: " + type);
+}
+
+break;
+```
+
 
 Result
 ```
-Sending JSON notification: {"message":"Your book is ready to pick up!", "recipient":"john@gmail.com"}
-```
-
-### Decorator
-* Decorator allows to add new behavior to object placing them inside other object that contains new behavior.
-* In my implementation, I am adding the functionality of email notifications by creating a GmailDecorator that applies Gmail-specific settings before sending the notification.
-* In the GmailDecorator class, I extend the EmailDecorator to create a decorator that prints a message indicating the use of Gmail settings before call to the original email notification send() method.
-
-```java
-public class GmailDecorator extends EmailDecorator {
-    public GmailDecorator(EmailNotification emailNotification) {
-        super(emailNotification);
-    }
-
-    @Override
-    public void send() {
-        System.out.println("Using Gmail settings...");
-        super.send();
-    }
-}
-```
-
-* EmailDecorator hold a reference to an EmailNotification object. The constructor initializes the base class with the message and recipient, where the decorator send() method calls the send() method of the encapsulated notification.
-```java
-public abstract class EmailDecorator extends EmailNotification {
-    protected EmailNotification emailNotification;
-
-    public EmailDecorator(EmailNotification emailNotification) {
-        super(emailNotification.getMessage(), emailNotification.getRecipient());
-        this.emailNotification = emailNotification;
-    }
-
-    @Override
-    public void send() {
-        emailNotification.send();
-    }
-}
-```
-
-Result
-```
+[2024-11-20 15:38:38] Log message: Application started
+[2024-11-20 15:38:38] Log message: Created Email Notification
+[2024-11-20 15:38:38] Log message: Proxy is called
+[2024-11-20 15:38:38] Log message: Preparing to send notification to john@gmail.com
 Using Gmail settings...
 Email sent to john@gmail.com: An angry email for John Doe
-```
-
-### Proxy
-* For Proxy design pattern I created a NotificaitonProxy that wraps a Notification object. This proxy adds logging whenever a notification is sent. Proxy is used in factory class
-```java
-public class NotificationProxy extends Notification {
-    private Notification realNotification;
-
-    public NotificationProxy(Notification realNotification) {
-        super(realNotification.getMessage(), realNotification.getRecipient());
-        this.realNotification = realNotification;
-    }
-
-    @Override
-    public void send() {
-        // Addiing additional behavior
-        LogSystem logger = LogSystem.getInstance();
-        logger.log("Proxy is called");
-        logger.log("Preparing to send notification to " + recipient);
-
-        // Call the actual send method
-        realNotification.send();
-
-        logger.log("Notification sent to " + recipient);
-    }
-}
+With Respect Your creditor
+[2024-11-20 15:38:38] Log message: Notification sent to john@gmail.com
+[2024-11-20 15:38:38] Log message: Application Finished
 ```
 
 ## Conclusions
-In this laboratory work I have utilized three patterns Adapter, Decorator and Proxy within a notifcation system. The use of each pattern has increased the flexibility of my code, also bold the importance of utilizing design patterns in software development.  
+In this laboratory work, I explored and implemented the Chain of Responsibility design pattern as a part of a notification system. The key goal was to enhance the system by utilizing behavioral design patterns

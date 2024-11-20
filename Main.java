@@ -32,13 +32,15 @@ public class Main {
 
 //        LAB 2
 //        ADAPTER
-        Notification jsonEmailNotification = new JsonNotificationAdapter(buildedEmailNotification);
-        jsonEmailNotification.send();
+//        Notification jsonEmailNotification = new JsonNotificationAdapter(buildedEmailNotification);
+//        jsonEmailNotification.send();
 
 //        Decorator
+//        Notification emailNotification = NotificationFactory.createNotification(NotificationType.EMAIL, "An angry email for " + user.getName(), user.getEmail());
+//        emailNotification.send();
+
         Notification emailNotification = NotificationFactory.createNotification(NotificationType.EMAIL, "An angry email for " + user.getName(), user.getEmail());
         emailNotification.send();
-
 
         logger.log("Application Finished");
     }

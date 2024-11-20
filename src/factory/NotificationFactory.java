@@ -1,10 +1,10 @@
 package src.factory;
 
-import src.Decorator.GmailDecorator;
-import src.Decorator.OutlookDecorator;
-import src.domain.EmailNotification;
 import src.domain.Notification;
 import src.domain.SmsNotification;
+import src.handler.EmailRespectHandler;
+import src.handler.EmailNotificationHandler;
+import src.handler.NotificationHandler;
 import src.proxy.NotificationProxy;
 import src.singleton.LogSystem;
 import src.types.NotificationType;
@@ -15,13 +15,17 @@ public class NotificationFactory {
         Notification notification;
         switch (type) {
             case EMAIL:
-                notification = new EmailNotification(message, recipient);
-                if (recipient.endsWith("@gmail.com")) {
-                    notification = new GmailDecorator((EmailNotification) notification);
-                } else if (recipient.endsWith("@outlook.com")) {
-                    notification = new OutlookDecorator((EmailNotification) notification);
+                NotificationHandler emailHandler = new EmailNotificationHandler();
+                NotificationHandler emailRespectHandler = new EmailRespectHandler();
+
+                emailRespectHandler.setNext(emailHandler);
+
+                notification = emailRespectHandler.handleNotification(type, message, recipient);
+
+                if (notification == null) {
+                    throw new IllegalArgumentException("Unknown notification type: " + type);
                 }
-                logger.log("Created Email Notification");
+
                 break;
             case SMS:
                 notification = new SmsNotification(message, recipient);

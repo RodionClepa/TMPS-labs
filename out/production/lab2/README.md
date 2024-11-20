@@ -1,56 +1,84 @@
-# Report on Implementation of Creational Design Patterns
-### Clepa Rodion FAF 221
-
-## Overview
-This project demonstrates the implementation of three creational design patterns: Builder, Factory, and Singleton. The system revolves around a notification mechanism that can send different types of notifications (for now Email, SMS), and also logs the actions with a logging system.
-
-## Builder Design Pattern
-#### Fields
-- `String message` Holds the message content for the notification
-- `String recipient` Stores the recipient information for the notification.
-- `Notification notification` An instance of Notification (an abstract class) that will represent the specific type of notification, such as EmailNotification or SmsNotification
-
-#### Builder Methods
-
-- `message(String message)` Sets the message field to the provided value. This method returns the NotificationBuilder instance, enabling method chaining.
-- `recipient(String recipient)` Sets the recipient field to the provided value and also returns the NotificationBuilder instance.
-- `notificationType(Notification notification)` Sets the notification field with the specific Notification type passed as an argument. This could be an instance of any subclass of Notification, like EmailNotification or SmsNotification.
-
-#### `build()` Method
-
-- This method finalizes the configuration of the `Notification` object by setting the `message` and `recipient` on the specified `Notification` type. It calls the `setMessage` and `setRecipient` methods on notification to pass these values.
-- Finally, it returns the fully configured `Notification` instance.
+# Behavioral Design Patterns
 
 
-## Factory Method Design Pattern
-#### Static Factory Method:
+## Author: Clepa Rodion
+
+----
+
+## Objectives:
+
+* Study and understand the Behavioral Design Patterns.
+* As a continuation of the previous laboratory work, think about what communication between software entities might be involed in my system.
+* Implement some additional functionalities using behavioral design patterns.
+
+## Reminding domain
+- Notification System
+
+## Used Design Patterns:
+- Chain of Responsibility
+
+
+## Implementation
+### Chain of Responsibility
+* Chain of Responsibility is a design pattern that allow to pass a data through a chain of handler, each handler have possibility to process or to pass data to the next handler.
+
+For start, I create an interface for all other handlers
 ```java
-public static Notification createNotification(NotificationType type, String message, String recipient) {
-        LogSystem logger = LogSystem.getInstance();
-        Notification notification;
-        switch (type) {
-            case EMAIL:
-                notification = new EmailNotification(message, recipient);
-                logger.log("Created Email Notification");
-                break;
-            case SMS:
-                /** **/
-            default:
-                throw new IllegalArgumentException("Unknown notification type: " + type);
-        }
-        return notification;
-    }
+public interface NotificationHandler {
+    void setNext(NotificationHandler handler);
+    Notification handleNotification(NotificationType type, String message, String recipient);
+}
 ```
-`createNotification(NotificationType type, String message, String recipient)` This static method is responsible for generating `Notification` objects. It takes in a `NotificationType` enum (either EMAIL or SMS), a `message`, and a `recipient`.
+Method `setNext` - is used to link one handler to another in a chain
+Method `handleNotification` - where will be implemented data processing.
 
-## Singleton Design Pattern
-The `LogSystem` class implements the Singleton design pattern, ensuring there is only one instance of `LogSystem` throughout the application.
 
-#### Private Static Instance
-`private static LogSystem instance` This holds the single instance of `LogSystem`. It is static, ensuring that the same instance can be accessed globally across the application.
-#### Private Constructor
-`private LogSystem() {}` The private constructor prevents direct instantiation of the `LogSystem` class from outside, enforcing the Singleton pattern by restricting instantiation.
+The EmailNotificationHandler is responsible for handling email notifications. When it receives a notification data, it does a few thing.
+- It checks if the notification is an email.
+- It creates a basic email notification.
+- It applies decorator to the notification based on the recipient's email domain.
+- It logs the creation of the email notification.
 
-#### `getInstance` Method:
-`public static LogSystem getInstance()` This method checks if an instance of `LogSystem` already exists. If not, it creates one. This instance is then returned, providing a single point of access to the logger.
+```java
+public class EmailNotificationHandler implements NotificationHandler {
+    private NotificationHandler next;
 
+    @Override
+    public void setNext(NotificationHandler handler) {
+        this.next = handler;
+    }
+
+    @Override
+    public Notification handleNotification(NotificationType type, String message, String recipient) {
+        if (type == NotificationType.EMAIL) {
+            LogSystem logger = LogSystem.getInstance();
+            EmailNotification notification = new EmailNotification(message, recipient);
+
+            if (recipient.endsWith("@gmail.com")) {
+                notification = new GmailDecorator(notification);
+            } else if (recipient.endsWith("@outlook.com")) {
+                notification = new OutlookDecorator(notification);
+            }
+
+            logger.log("Created Email Notification");
+            return notification;
+        }
+        return next != null ? next.handleNotification(type, message, recipient) : null;
+    }
+}
+```
+
+Other handler is just adding a message to the end of the message
+```java
+
+```
+
+
+
+Result
+```
+Sending JSON notification: {"message":"Your book is ready to pick up!", "recipient":"john@gmail.com"}
+```
+
+## Conclusions
+In this laboratory work I have utilized three patterns Adapter, Decorator and Proxy within a notifcation system. The use of each pattern has increased the flexibility of my code, also bold the importance of utilizing design patterns in software development.  
